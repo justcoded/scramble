@@ -128,7 +128,7 @@ class JsonResourceTypeInfer implements ExpressionTypeInferExtension
         return null;
     }
 
-    private static function modelType(ClassDefinition $jsonClass, Scope $scope): ?Type
+    public static function modelType(ClassDefinition $jsonClass, Scope $scope): ?Type
     {
         if ([$cachedModelType, $cachedModelDefinition] = static::$jsonResourcesModelTypesCache[$jsonClass->name] ?? null) {
             if ($cachedModelDefinition) {
@@ -170,7 +170,8 @@ class JsonResourceTypeInfer implements ExpressionTypeInferExtension
             ->first(fn ($str) => Str::is(['*@property*$resource', '*@mixin*'], $str));
 
         if ($mixinOrPropertyLine) {
-            $modelName = Str::replace(['@property', '$resource', '@mixin', ' ', '*'], '', $mixinOrPropertyLine);
+            $modelName = Str::replace(['@property-read', '$resource', '@mixin', ' ', '*'], '', $mixinOrPropertyLine);
+            $modelName = Str::replace('@property','', $modelName);
 
             $modelClass = $getFqName($modelName);
 

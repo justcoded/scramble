@@ -93,7 +93,7 @@ class Generator
         return $openApi->toArray();
     }
 
-    private function makeOpenApi(GeneratorConfig $config)
+    protected function makeOpenApi(GeneratorConfig $config)
     {
         $openApi = OpenApi::make('3.1.0')
             ->setComponents($this->transformer->getComponents())
@@ -118,7 +118,7 @@ class Generator
         return $openApi;
     }
 
-    private function getRoutes(GeneratorConfig $config): Collection
+    protected function getRoutes(GeneratorConfig $config): Collection
     {
         return collect(RouteFacade::getRoutes())
             ->pipe(function (Collection $c) {
@@ -149,7 +149,7 @@ class Generator
             ->values();
     }
 
-    private function routeToOperation(OpenApi $openApi, Route $route, GeneratorConfig $config)
+    protected function routeToOperation(OpenApi $openApi, Route $route, GeneratorConfig $config)
     {
         $routeInfo = new RouteInfo($route, $this->fileParser, $this->infer);
 
@@ -164,7 +164,7 @@ class Generator
         return $operation;
     }
 
-    private function ensureSchemaTypes(Route $route, Operation $operation): void
+    protected function ensureSchemaTypes(Route $route, Operation $operation): void
     {
         if (! Scramble::getSchemaValidator()->hasRules()) {
             return;
@@ -183,14 +183,14 @@ class Generator
         }
     }
 
-    private function createSchemaEnforceTraverser(Route $route)
+    protected function createSchemaEnforceTraverser(Route $route)
     {
         $traverser = new OpenApiTraverser([$visitor = new SchemaEnforceVisitor($route, $this->throwExceptions, $this->exceptions)]);
 
         return [$traverser, $visitor];
     }
 
-    private function moveSameAlternativeServersToPath(OpenApi $openApi)
+    protected function moveSameAlternativeServersToPath(OpenApi $openApi)
     {
         foreach (collect($openApi->paths)->groupBy('path') as $pathsGroup) {
             if ($pathsGroup->isEmpty()) {
@@ -217,7 +217,7 @@ class Generator
         }
     }
 
-    private function setUniqueOperationId(OpenApi $openApi)
+    protected function setUniqueOperationId(OpenApi $openApi)
     {
         $names = new UniqueNamesOptionsCollection;
 
@@ -234,7 +234,7 @@ class Generator
         });
     }
 
-    private function foreachOperation(OpenApi $openApi, callable $callback)
+    protected function foreachOperation(OpenApi $openApi, callable $callback)
     {
         foreach (collect($openApi->paths)->groupBy('path') as $pathsGroup) {
             if ($pathsGroup->isEmpty()) {

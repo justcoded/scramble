@@ -94,6 +94,8 @@ class ClassAnalyzer
             properties: array_map(fn($pd) => clone $pd, $parentDefinition?->properties ?: []),
             methods: $parentDefinition?->methods ?: [],
             parentFqn: $parentName ?? null,
+            annotations: $annotations,
+            attributes: $attrs,
         );
 
         /*
@@ -124,13 +126,9 @@ class ClassAnalyzer
         }
 
         foreach ($classReflection->getMethods() as $reflectionMethod) {
-            if ($reflectionMethod->class !== $name) {
-                continue;
-            }
-
             $classDefinition->methods[$reflectionMethod->name] = new FunctionLikeDefinition(
                 new FunctionType(
-                    $reflectionMethod->name,
+                    name: $reflectionMethod->name,
                     arguments: [],
                     returnType: new UnknownType(),
                 ),
@@ -140,8 +138,9 @@ class ClassAnalyzer
 
         $this->index->registerClassDefinition($classDefinition);
 
-        Context::getInstance()->extensionsBroker->afterClassDefinitionCreated(new ClassDefinitionCreatedEvent($classDefinition->name,
-            $classDefinition));
+        Context::getInstance()->extensionsBroker->afterClassDefinitionCreated(
+            new ClassDefinitionCreatedEvent($classDefinition->name, $classDefinition),
+        );
 
         return $classDefinition;
     }

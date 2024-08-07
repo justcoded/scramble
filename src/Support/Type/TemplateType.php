@@ -20,7 +20,7 @@ class TemplateType extends AbstractType
 
     public function isInstanceOf(string $className)
     {
-        return $this->is?->isInstanceOf($className);
+        return (bool) $this->is?->isInstanceOf($className);
     }
 
     public function toString(): string

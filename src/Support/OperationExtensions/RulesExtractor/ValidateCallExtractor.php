@@ -4,6 +4,7 @@ namespace Dedoc\Scramble\Support\OperationExtensions\RulesExtractor;
 
 use Dedoc\Scramble\Support\SchemaClassDocReflector;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use PhpParser\Node;
 use PhpParser\NodeFinder;
 use PhpParser\PrettyPrinter\Standard;
@@ -11,14 +12,16 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 
 class ValidateCallExtractor
 {
-    private ?Node\FunctionLike $handle;
+    protected ?Node\FunctionLike $handle;
+    protected ?Route $route;
 
-    public function __construct(?Node\FunctionLike $handle)
+    public function __construct(?Node\FunctionLike $handle, ?Route $route = null)
     {
         $this->handle = $handle;
+        $this->route = $route;
     }
 
-    public function shouldHandle()
+    public function shouldHandle(): bool
     {
         return (bool) $this->handle;
     }
@@ -116,7 +119,12 @@ class ValidateCallExtractor
             try {
                 extract($injectableParams);
 
-                $rules = eval("\$request = request(); return $validationRulesCode;");
+                if ($this->route) {
+                    $rules = (fn() => eval("\$request = request(); return $validationRulesCode;"))
+                        ->call($this->route->getController());
+                } else {
+                    $rules = eval("\$request = request(); return $validationRulesCode;");
+                }
             } catch (\Throwable $exception) {
                 throw $exception;
             }

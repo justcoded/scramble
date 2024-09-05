@@ -110,7 +110,11 @@ class RequestBodyExtension extends OperationExtension
         $operation->addRequestBodyObject(
             RequestBodyObject::make()->setContent(
                 $mediaType,
-                new Reference('schemas', $schemaName, $components),
+                app(Reference::class, [
+                    'referenceType' => 'schemas',
+                    'fullName' => $schemaName,
+                    'components' => $components,
+                ]),
             )
         );
     }

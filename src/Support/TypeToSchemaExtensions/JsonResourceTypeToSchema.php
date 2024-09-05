@@ -148,7 +148,11 @@ class JsonResourceTypeToSchema extends TypeToSchemaExtension
 
     public function reference(ObjectType $type)
     {
-        return new Reference('schemas', $type->name, $this->components);
+        return app(Reference::class, [
+            'referenceType' => 'schemas',
+            'fullName' => $type->name,
+            'components' => $this->components,
+        ]);
 
         /*
          * @todo: Allow (enforce) user to explicitly pass short and unique names for the reference and avoid passing components.

@@ -30,13 +30,13 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
  */
 class TypeTransformer
 {
-    private Infer $infer;
+    protected Infer $infer;
 
-    private Components $components;
+    protected Components $components;
 
-    private array $typeToSchemaExtensions;
+    protected array $typeToSchemaExtensions;
 
-    private array $exceptionToResponseExtensions;
+    protected array $exceptionToResponseExtensions;
 
     public function __construct(
         Infer $infer,
@@ -221,7 +221,7 @@ class TypeTransformer
         return $openApiType;
     }
 
-    private function handleUsingExtensions(Type $type)
+    protected function handleUsingExtensions(Type $type)
     {
         return array_reduce(
             $this->typeToSchemaExtensions,
@@ -313,7 +313,7 @@ class TypeTransformer
         return $response;
     }
 
-    private function handleResponseUsingExtensions(Type $type)
+    protected function handleResponseUsingExtensions(Type $type)
     {
         if (! $type->isInstanceOf(\Throwable::class)) {
             return array_reduce(

@@ -128,6 +128,17 @@ class TypeTransformer
                     ? $this->transform(PhpDocTypeHelper::toType($varNode->type))
                     : $openApiType;
 
+                $enumNode = array_values($docNode->getTagsByName('@enum'))[0] ?? null;
+                if ($enumNode) {
+                    $values = explode('|', $enumNode->value->value);
+
+                    if (is_int($values[0])) {
+                        $openApiType = (new IntegerType())->enum($values);
+                    } else {
+                        $openApiType = (new StringType())->enum($values);
+                    }
+                }
+
                 $commentDescription = trim($docNode->getAttribute('summary') . ' ' . $docNode->getAttribute('description'));
                 $varNodeDescription = $varNode && $varNode->description ? trim($varNode->description) : '';
                 if ($commentDescription || $varNodeDescription) {

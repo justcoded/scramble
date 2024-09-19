@@ -73,7 +73,7 @@ class TypeTransformer
         }
 
         if ($type instanceof ArrayObjectType) {
-            $openApiType = (new ArrayType())
+            $openApiType = (new OpenApiArrayObjectType())
                 ->setItems(
                     array_map(
                         fn($item) => $this->transform($item->value),

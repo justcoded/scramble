@@ -8,11 +8,11 @@ class ArrayObjectType extends ArrayType
 {
     public function toArray(): array
     {
-        $result = new ObjectType();
-
         if (! $this->items || (! is_array($this->items) && $this->items->getAttribute('missing'))) {
             return [
-                'items' => $result,
+                'items' => [
+                    'type' => 'object',
+                ],
             ];
         }
 
@@ -20,13 +20,25 @@ class ArrayObjectType extends ArrayType
             ? array_map(static fn($item) => $item->toArray(), $this->items)
             : $this->items->toArray();
 
-
+        $props = $required = [];
         foreach ($items as $item) {
-            $result->addProperty($item->key, $item->value);
+            $props = [
+                ...$props,
+                ...$item['properties'],
+            ];
+
+            $required = [
+                ...$required,
+                ...array_keys($item['properties']),
+            ];
         }
 
         return [
-            'items' => $result,
+            'items' => [
+                'type' => 'object',
+                'properties' => $props,
+                'required' => $required,
+            ],
         ];
     }
 }

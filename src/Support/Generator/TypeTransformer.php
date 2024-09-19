@@ -94,12 +94,14 @@ class TypeTransformer
 
             $props = collect($type->items)
                 ->mapWithKeys(function (ArrayItemType_ $item) use (&$requiredKeys) {
-                    if (! $item->isOptional) {
+                    $value = $this->transform($item);
+
+                    if (! $value->nullable) {
                         $requiredKeys[] = $item->key;
                     }
 
                     return [
-                        $item->key => $this->transform($item),
+                        $item->key => $value,
                     ];
                 });
 

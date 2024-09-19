@@ -76,7 +76,7 @@ class TypeTransformer
         ) {
             /** @see https://stackoverflow.com/questions/57464633/how-to-define-a-json-array-with-concrete-item-definition-for-every-index-i-e-a */
             $openApiType = (new ArrayType())
-                ->setMin(1)
+                ->setMin(count($type->items))
                 ->setItems(
                     array_map(
                         fn($item) => $this->transform($item->value),

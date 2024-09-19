@@ -72,7 +72,15 @@ class TypeTransformer
             $type = $type->is;
         }
 
-        if (
+        if ($type instanceof ArrayObjectType) {
+            $openApiType = (new ArrayType())
+                ->setItems(
+                    array_map(
+                        fn($item) => $this->transform($item->value),
+                        $type->items,
+                    ),
+                );
+        } elseif (
             $type instanceof \Dedoc\Scramble\Support\Type\KeyedArrayType
             && $type->isList
         ) {
@@ -110,22 +118,6 @@ class TypeTransformer
             $openApiType->properties = $props->all();
 
             $openApiType->setRequired($requiredKeys);
-        } elseif ($type instanceof ArrayObjectType) {
-            $openApiType = (new OpenApiArrayObjectType());
-            $props = collect($type->items)
-                ->mapWithKeys(function (ArrayItemType_ $item) use (&$requiredKeys) {
-                    $value = $this->transform($item);
-
-                    if (! $value->nullable) {
-                        $requiredKeys[] = $item->key;
-                    }
-
-                    return [
-                        $item->key => $value,
-                    ];
-                });
-
-            $openApiType->properties = $props->all();
         } elseif (
             $type instanceof \Dedoc\Scramble\Support\Type\ArrayType
         ) {

@@ -10,7 +10,7 @@ class ArrayObjectType extends ArrayType
     {
         if (! $this->items || (! is_array($this->items) && $this->items->getAttribute('missing'))) {
             return [
-                'type' => 'array',
+                'type' => $this->type,
                 'items' => [
                     'type' => 'object',
                 ],
@@ -35,7 +35,7 @@ class ArrayObjectType extends ArrayType
         }
 
         return [
-            'type' => 'array',
+            'type' => $this->type,
             'items' => [
                 'type' => 'object',
                 'properties' => $props,

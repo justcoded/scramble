@@ -229,6 +229,15 @@ class TypeTransformer
             $openApiType->setAttribute('line', $type->getAttribute('line'));
         }
 
+        if ($type->hasAttribute('default')) {
+            $openApiType->default($type->getAttribute('default'));
+        }
+
+        if ($openApiType->default && ! $openApiType->default instanceof MissingExample) {
+            $openApiType->example = new MissingExample();
+            $openApiType->examples = [];
+        }
+
         if (! $openApiType->description && $description = $type->getAttribute('description')) {
             $openApiType->setDescription($description);
         }

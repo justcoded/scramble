@@ -6,6 +6,7 @@ use Dedoc\Scramble\Infer;
 use Dedoc\Scramble\PhpDoc\PhpDocTypeHelper;
 use Dedoc\Scramble\Support\Generator\Combined\AllOf;
 use Dedoc\Scramble\Support\Generator\Combined\AnyOf;
+use Dedoc\Scramble\Support\Generator\Types\ArrayObjectType as OpenApiArrayObjectType;
 use Dedoc\Scramble\Support\Generator\Types\ArrayType;
 use Dedoc\Scramble\Support\Generator\Types\BooleanType;
 use Dedoc\Scramble\Support\Generator\Types\IntegerType;
@@ -16,6 +17,7 @@ use Dedoc\Scramble\Support\Generator\Types\StringType;
 use Dedoc\Scramble\Support\Generator\Types\UnknownType;
 use Dedoc\Scramble\Support\Helpers\ExamplesExtractor;
 use Dedoc\Scramble\Support\Type\ArrayItemType_;
+use Dedoc\Scramble\Support\Type\ArrayObjectType;
 use Dedoc\Scramble\Support\Type\Literal\LiteralFloatType;
 use Dedoc\Scramble\Support\Type\Literal\LiteralIntegerType;
 use Dedoc\Scramble\Support\Type\Literal\LiteralStringType;
@@ -77,13 +79,14 @@ class TypeTransformer
             /** @see https://stackoverflow.com/questions/57464633/how-to-define-a-json-array-with-concrete-item-definition-for-every-index-i-e-a */
             $openApiType = (new ArrayType())
                 ->setMin(count($type->items))
-                ->setItems(
+                ->setMax(count($type->items))
+                ->setPrefixItems(
                     array_map(
                         fn($item) => $this->transform($item->value),
                         $type->items,
                     ),
                 )
-                ->setAdditionalItems(true);
+                ->setAdditionalItems(false);
         } elseif (
             $type instanceof \Dedoc\Scramble\Support\Type\KeyedArrayType
             && ! $type->isList
@@ -107,6 +110,22 @@ class TypeTransformer
             $openApiType->properties = $props->all();
 
             $openApiType->setRequired($requiredKeys);
+        } elseif ($type instanceof ArrayObjectType) {
+            $openApiType = (new OpenApiArrayObjectType());
+            $props = collect($type->items)
+                ->mapWithKeys(function (ArrayItemType_ $item) use (&$requiredKeys) {
+                    $value = $this->transform($item);
+
+                    if (! $value->nullable) {
+                        $requiredKeys[] = $item->key;
+                    }
+
+                    return [
+                        $item->key => $value,
+                    ];
+                });
+
+            $openApiType->properties = $props->all();
         } elseif (
             $type instanceof \Dedoc\Scramble\Support\Type\ArrayType
         ) {

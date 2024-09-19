@@ -229,6 +229,10 @@ class TypeTransformer
             $openApiType->setAttribute('line', $type->getAttribute('line'));
         }
 
+        if ($description = $type->getAttribute('description')) {
+            $openApiType->setDescription($description);
+        }
+
         return $openApiType;
     }
 

@@ -77,14 +77,13 @@ class TypeTransformer
             /** @see https://stackoverflow.com/questions/57464633/how-to-define-a-json-array-with-concrete-item-definition-for-every-index-i-e-a */
             $openApiType = (new ArrayType())
                 ->setMin(count($type->items))
-                ->setMax(count($type->items))
-                ->setPrefixItems(
+                ->setItems(
                     array_map(
                         fn($item) => $this->transform($item->value),
                         $type->items,
                     ),
                 )
-                ->setAdditionalItems(false);
+                ->setAdditionalItems(true);
         } elseif (
             $type instanceof \Dedoc\Scramble\Support\Type\KeyedArrayType
             && ! $type->isList

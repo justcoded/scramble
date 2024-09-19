@@ -6,10 +6,10 @@ use Dedoc\Scramble\Support\Generator\Schema;
 
 class ArrayType extends Type
 {
-    /** @var Type|Schema */
+    /** @var Type|Schema|array */
     public $items;
 
-    /** @var Type|Schema */
+    /** @var Type|Schema|array */
     public $prefixItems = [];
 
     public $minItems = null;
@@ -22,7 +22,7 @@ class ArrayType extends Type
     {
         parent::__construct('array');
 
-        $defaultMissingType = new StringType;
+        $defaultMissingType = new StringType();
         $defaultMissingType->setAttribute('missing', true);
 
         $this->items = $defaultMissingType;
@@ -65,22 +65,32 @@ class ArrayType extends Type
 
     public function toArray()
     {
-        $shouldOmitItems = $this->items->getAttribute('missing')
+        $shouldOmitItems = ! is_array($this->items)
+            && $this->items->getAttribute('missing')
             && count($this->prefixItems);
 
         return array_merge(
             parent::toArray(),
-            $shouldOmitItems ? [] : [
-                'items' => $this->items->toArray(),
+            $shouldOmitItems
+                ? []
+                : [
+                'items' => is_array($this->items)
+                    ? array_map(static fn($item) => $item->toArray(), $this->items)
+                    : $this->items->toArray(),
             ],
             $this->prefixItems ? [
-                'prefixItems' => array_map(fn ($item) => $item->toArray(), $this->prefixItems),
+                'prefixItems' => is_array($this->prefixItems)
+                    ? array_map(static fn($item) => $item->toArray(), $this->prefixItems)
+                    : $this->prefixItems->toArray(),
             ] : [],
-            array_filter([
-                'minItems' => $this->minItems,
-                'maxItems' => $this->maxItems,
-                'additionalItems' => $this->additionalItems,
-            ], fn ($v) => $v !== null)
+            array_filter(
+                [
+                    'minItems' => $this->minItems,
+                    'maxItems' => $this->maxItems,
+                    'additionalItems' => $this->additionalItems,
+                ],
+                static fn($v) => $v !== null,
+            ),
         );
     }
 }

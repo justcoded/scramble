@@ -4,6 +4,7 @@ namespace Dedoc\Scramble\Infer\Scope;
 
 use Dedoc\Scramble\Infer\Definition\ClassDefinition;
 use Dedoc\Scramble\Infer\Services\FileNameResolver;
+use Dedoc\Scramble\Infer\Services\ReferenceTypeResolver;
 use Dedoc\Scramble\Infer\SimpleTypeGetters\BooleanNotTypeGetter;
 use Dedoc\Scramble\Infer\SimpleTypeGetters\CastTypeGetter;
 use Dedoc\Scramble\Infer\SimpleTypeGetters\ClassConstFetchTypeGetter;
@@ -303,6 +304,17 @@ class Scope
         }
 
         $this->variables[$name][] = compact('line', 'type');
+    }
+
+    /**
+     * @deprecated
+     */
+    public function getPropertyFetchType(Type $calledOn, string $propertyName): Type
+    {
+        return (new ReferenceTypeResolver($this->index))->resolve(
+            $this,
+            new PropertyFetchReferenceType($calledOn, $propertyName)
+        );
     }
 
     private function getVariableType(Node\Expr\Variable $node)

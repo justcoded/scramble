@@ -24,6 +24,10 @@ class ArrayObjectType extends ArrayType
 
         $props = $required = [];
         foreach ($items as $item) {
+            if (! isset($itemTitle)) {
+                $itemTitle = $item['title'] ?? null;
+            }
+            
             $props = [
                 ...$props,
                 ...$item['properties'],
@@ -38,11 +42,12 @@ class ArrayObjectType extends ArrayType
         return array_filter([
             'type' => $this->type,
             'title' => $this->title,
-            'items' => [
+            'items' => array_filter([
                 'type' => 'object',
+                'title' => $itemTitle,
                 'properties' => $props,
                 'required' => $required,
-            ],
+            ]),
         ]);
     }
 }

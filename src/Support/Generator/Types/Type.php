@@ -13,6 +13,8 @@ abstract class Type
 
     public string $format = '';
 
+    public string $title = '';
+
     public string $description = '';
 
     /** @var array|scalar|null|MissingExample */
@@ -68,6 +70,7 @@ abstract class Type
             array_filter([
                 'type' => $this->nullable ? [$this->type, 'null'] : $this->type,
                 'format' => $this->format,
+                'title' => $this->title,
                 'description' => $this->description,
                 'enum' => count($this->enum) ? $this->enum : null,
             ]),
@@ -80,6 +83,13 @@ abstract class Type
                     ->toArray()
             ) ? ['examples' => $examples] : [],
         );
+    }
+
+    public function setTitle(string $title): Type
+    {
+        $this->title = $title;
+
+        return $this;
     }
 
     public function setDescription(string $description): Type

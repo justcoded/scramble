@@ -250,6 +250,10 @@ class TypeTransformer
             $openApiType->examples = [];
         }
 
+        if (! $openApiType->title && $title = $type->getAttribute('title')) {
+            $openApiType->setTitle($title);
+        }
+
         if (! $openApiType->description && $description = $type->getAttribute('description')) {
             $openApiType->setDescription($description);
         }

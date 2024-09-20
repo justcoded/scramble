@@ -9,12 +9,13 @@ class ArrayObjectType extends ArrayType
     public function toArray(): array
     {
         if (! $this->items || (! is_array($this->items) && $this->items->getAttribute('missing'))) {
-            return [
+            return array_filter([
                 'type' => $this->type,
+                'title' => $this->title,
                 'items' => [
                     'type' => 'object',
                 ],
-            ];
+            ]);
         }
 
         $items = is_array($this->items)
@@ -34,13 +35,14 @@ class ArrayObjectType extends ArrayType
             ];
         }
 
-        return [
+        return array_filter([
             'type' => $this->type,
+            'title' => $this->title,
             'items' => [
                 'type' => 'object',
                 'properties' => $props,
                 'required' => $required,
             ],
-        ];
+        ]);
     }
 }

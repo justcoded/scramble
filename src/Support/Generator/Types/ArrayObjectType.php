@@ -22,32 +22,10 @@ class ArrayObjectType extends ArrayType
             ? array_map(static fn($item) => $item->toArray(), $this->items)
             : $this->items->toArray();
 
-        $props = $required = [];
-        foreach ($items as $item) {
-            if (! isset($itemTitle)) {
-                $itemTitle = $item['title'] ?? null;
-            }
-            
-            $props = [
-                ...$props,
-                ...$item['properties'],
-            ];
-
-            $required = [
-                ...$required,
-                ...array_keys($item['properties']),
-            ];
-        }
-
         return array_filter([
             'type' => $this->type,
             'title' => $this->title,
-            'items' => array_filter([
-                'type' => 'object',
-                'title' => $itemTitle,
-                'properties' => $props,
-                'required' => $required,
-            ]),
+            'items' => array_filter($items),
         ]);
     }
 }

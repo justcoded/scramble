@@ -74,12 +74,7 @@ class TypeTransformer
 
         if ($type instanceof ArrayObjectType) {
             $openApiType = (new OpenApiArrayObjectType())
-                ->setItems(
-                    array_map(
-                        fn($item) => $this->transform($item->value),
-                        $type->items,
-                    ),
-                );
+                ->setItems($this->transform($type->value));
         } elseif (
             $type instanceof \Dedoc\Scramble\Support\Type\KeyedArrayType
             && $type->isList

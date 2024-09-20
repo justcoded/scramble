@@ -13,6 +13,6 @@ class ArrayObjectType extends ArrayType
 
     public function nodes(): array
     {
-        return ['value', 'key'];
+        return ['value'];
     }
 }

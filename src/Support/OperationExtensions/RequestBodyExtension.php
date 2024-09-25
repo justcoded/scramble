@@ -66,13 +66,7 @@ class RequestBodyExtension extends OperationExtension
         $mediaType = $this->getMediaType($operation, $routeInfo, $allParams);
 
         if (empty($allParams)) {
-            if (! in_array($operation->method, static::HTTP_METHODS_WITHOUT_REQUEST_BODY)) {
-                $operation
-                    ->addRequestBodyObject(
-                        RequestBodyObject::make()->setContent($mediaType, Schema::fromType(new ObjectType))
-                    );
-            }
-
+            // no request params - no request body, regardless of method
             return;
         }
 

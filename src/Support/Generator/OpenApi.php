@@ -2,6 +2,8 @@
 
 namespace Dedoc\Scramble\Support\Generator;
 
+use stdClass;
+
 class OpenApi
 {
     public string $version;
@@ -21,7 +23,7 @@ class OpenApi
     public function __construct(string $version)
     {
         $this->version = $version;
-        $this->components = new Components;
+        $this->components = new Components();
     }
 
     public static function make(string $version)
@@ -56,7 +58,7 @@ class OpenApi
     }
 
     /**
-     * @param  Path[]  $paths
+     * @param Path[] $paths
      */
     public function paths(array $paths)
     {
@@ -90,12 +92,12 @@ class OpenApi
     {
         $result = [
             'openapi' => $this->version,
-            'info' => $this->info->toArray(),
+            'info' => isset($this->info) ? $this->info->toArray() : new StdClass(),
         ];
 
         if (count($this->servers)) {
             $result['servers'] = array_map(
-                fn (Server $s) => $s->toArray(),
+                fn(Server $s) => $s->toArray(),
                 $this->servers,
             );
         }
@@ -108,8 +110,8 @@ class OpenApi
             $paths = [];
 
             foreach ($this->paths as $pathBuilder) {
-                $paths['/'.$pathBuilder->path] = array_merge(
-                    $paths['/'.$pathBuilder->path] ?? [],
+                $paths['/' . $pathBuilder->path] = array_merge(
+                    $paths['/' . $pathBuilder->path] ?? [],
                     $pathBuilder->toArray(),
                 );
             }

@@ -12,9 +12,9 @@ class ObjectType extends Type
 
     public ?Type $additionalProperties = null;
 
-    public function __construct()
+    public function __construct($type = null)
     {
-        parent::__construct('object');
+        parent::__construct($type ?? 'object');
     }
 
     public function addProperty(string $name, $propertyType)

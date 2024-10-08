@@ -13,7 +13,12 @@ abstract class Type
 
     public string $format = '';
 
+    public string $title = '';
+
     public string $description = '';
+
+    public string $contentMediaType = '';
+    public string $contentEncoding = '';
 
     /** @var array|scalar|null|MissingExample */
     public $example;
@@ -49,6 +54,20 @@ abstract class Type
         return $this;
     }
 
+    public function contentMediaType(string $format)
+    {
+        $this->contentMediaType = $format;
+
+        return $this;
+    }
+
+    public function contentEncoding(string $format)
+    {
+        $this->contentEncoding = $format;
+
+        return $this;
+    }
+
     public function addProperties(Type $fromType)
     {
         $this->attributes = $fromType->attributes;
@@ -68,6 +87,9 @@ abstract class Type
             array_filter([
                 'type' => $this->nullable ? [$this->type, 'null'] : $this->type,
                 'format' => $this->format,
+                'contentMediaType' => $this->contentMediaType,
+                'contentEncoding' => $this->contentEncoding,
+                'title' => $this->title,
                 'description' => $this->description,
                 'enum' => count($this->enum) ? $this->enum : null,
             ]),
@@ -80,6 +102,13 @@ abstract class Type
                     ->toArray()
             ) ? ['examples' => $examples] : [],
         );
+    }
+
+    public function setTitle(string $title): Type
+    {
+        $this->title = $title;
+
+        return $this;
     }
 
     public function setDescription(string $description): Type

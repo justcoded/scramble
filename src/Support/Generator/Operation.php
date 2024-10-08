@@ -160,7 +160,10 @@ class Operation
         }
 
         if (count($this->parameters)) {
-            $result['parameters'] = array_map(fn (Parameter $p) => $p->toArray(), $this->parameters);
+            $result['parameters'] = array_map(
+                static fn (Parameter|Reference $p) => $p->toArray(),
+                $this->parameters,
+            );
         }
 
         if ($this->requestBodyObject) {

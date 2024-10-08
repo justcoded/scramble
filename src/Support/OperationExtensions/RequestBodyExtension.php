@@ -66,13 +66,7 @@ class RequestBodyExtension extends OperationExtension
         $mediaType = $this->getMediaType($operation, $routeInfo, $allParams);
 
         if (empty($allParams)) {
-            if (! in_array($operation->method, static::HTTP_METHODS_WITHOUT_REQUEST_BODY)) {
-                $operation
-                    ->addRequestBodyObject(
-                        RequestBodyObject::make()->setContent($mediaType, Schema::fromType(new ObjectType))
-                    );
-            }
-
+            // no request params - no request body, regardless of method
             return;
         }
 
@@ -110,7 +104,11 @@ class RequestBodyExtension extends OperationExtension
         $operation->addRequestBodyObject(
             RequestBodyObject::make()->setContent(
                 $mediaType,
-                new Reference('schemas', $schemaName, $components),
+                app(Reference::class, [
+                    'referenceType' => 'schemas',
+                    'fullName' => $schemaName,
+                    'components' => $components,
+                ]),
             )
         );
     }
@@ -167,7 +165,7 @@ class RequestBodyExtension extends OperationExtension
             }
         }
 
-        if (($validateCallExtractor = new ValidateCallExtractor($methodNode))->shouldHandle()) {
+        if (($validateCallExtractor = new ValidateCallExtractor($methodNode, $route))->shouldHandle()) {
             if ($validateCallRules = $validateCallExtractor->extract()) {
                 $rules = array_merge($rules, $validateCallRules);
                 $nodesResults[] = $validateCallExtractor->node();

@@ -29,7 +29,9 @@ class ClassAnalyzer
          * Classes from `vendor` aren't analyzed at the moment. Instead, it is up to developers to provide
          * definitions for them using the dictionaries.
          */
-        return ! str_contains($parentClassReflection->getFileName(), DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR);
+
+        return ! str_contains($parentClassReflection->getFileName(),
+            DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR);
     }
 
     /**
@@ -51,7 +53,35 @@ class ClassAnalyzer
             // @todo: Here we still want to fire the event, so we can add some details to the definition.
             $parentDefinition = new ClassDefinition($parentName = $classReflection->getParentClass()->name);
 
-            Context::getInstance()->extensionsBroker->afterClassDefinitionCreated(new ClassDefinitionCreatedEvent($parentDefinition->name, $parentDefinition));
+            Context::getInstance()->extensionsBroker->afterClassDefinitionCreated(new ClassDefinitionCreatedEvent($parentDefinition->name,
+                $parentDefinition));
+        }
+
+        $annotations = [];
+
+        if ($doc = $classReflection->getDocComment()) {
+            preg_match_all(
+                '/@(\w+)(\s\w+)?/',
+                $doc,
+                $annotations,
+            );
+
+            $annotations = array_map(
+                static fn($value) => empty($value) ? null : trim($value),
+                array_combine($annotations[1], $annotations[2]),
+            );
+        }
+
+        $attrs = $classReflection->getAttributes() ?? [];
+
+        foreach ($attrs as $index => $attr) {
+            if (! class_exists($attr->getName())) {
+                unset($attrs[$index]);
+
+                continue;
+            }
+
+            $attrs[$index] = new ($attr->getName())(...$attr->getArguments());
         }
 
         /*
@@ -61,9 +91,11 @@ class ClassAnalyzer
         $classDefinition = new ClassDefinition(
             name: $name,
             templateTypes: $parentDefinition?->templateTypes ?: [],
-            properties: array_map(fn ($pd) => clone $pd, $parentDefinition?->properties ?: []),
+            properties: array_map(fn($pd) => clone $pd, $parentDefinition?->properties ?: []),
             methods: $parentDefinition?->methods ?: [],
             parentFqn: $parentName ?? null,
+            annotations: $annotations,
+            attributes: $attrs,
         );
 
         /*
@@ -79,12 +111,12 @@ class ClassAnalyzer
             if ($reflectionProperty->isStatic()) {
                 $classDefinition->properties[$reflectionProperty->name] = new ClassPropertyDefinition(
                     type: $reflectionProperty->hasDefaultValue()
-                        ? (TypeHelper::createTypeFromValue($reflectionProperty->getDefaultValue()) ?: new UnknownType)
-                        : new UnknownType,
+                        ? (TypeHelper::createTypeFromValue($reflectionProperty->getDefaultValue()) ?: new UnknownType())
+                        : new UnknownType(),
                 );
             } else {
                 $classDefinition->properties[$reflectionProperty->name] = new ClassPropertyDefinition(
-                    type: $t = new TemplateType('T'.Str::studly($reflectionProperty->name)),
+                    type: $t = new TemplateType('T' . Str::studly($reflectionProperty->name)),
                     defaultType: $reflectionProperty->hasDefaultValue()
                         ? TypeHelper::createTypeFromValue($reflectionProperty->getDefaultValue())
                         : null,
@@ -94,15 +126,11 @@ class ClassAnalyzer
         }
 
         foreach ($classReflection->getMethods() as $reflectionMethod) {
-            if ($reflectionMethod->class !== $name) {
-                continue;
-            }
-
             $classDefinition->methods[$reflectionMethod->name] = new FunctionLikeDefinition(
                 new FunctionType(
-                    $reflectionMethod->name,
+                    name: $reflectionMethod->name,
                     arguments: [],
-                    returnType: new UnknownType,
+                    returnType: new UnknownType(),
                 ),
                 definingClassName: $name,
             );
@@ -110,7 +138,9 @@ class ClassAnalyzer
 
         $this->index->registerClassDefinition($classDefinition);
 
-        Context::getInstance()->extensionsBroker->afterClassDefinitionCreated(new ClassDefinitionCreatedEvent($classDefinition->name, $classDefinition));
+        Context::getInstance()->extensionsBroker->afterClassDefinitionCreated(
+            new ClassDefinitionCreatedEvent($classDefinition->name, $classDefinition),
+        );
 
         return $classDefinition;
     }

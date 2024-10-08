@@ -35,7 +35,11 @@ class Components
     {
         $this->schemas[$schemaName] = $schema;
 
-        return new Reference('schemas', $schemaName, $this);
+        return app(Reference::class, [
+            'referenceType' => 'schemas',
+            'fullName' => $schemaName,
+            'components' => $this,
+        ]);
     }
 
     public function removeSchema(string $schemaName): void
@@ -95,7 +99,11 @@ class Components
 
     public function getSchemaReference(string $schemaName)
     {
-        return new Reference('schemas', $schemaName, $this);
+        return app(Reference::class, [
+            'referenceType' => 'schemas',
+            'fullName' => $schemaName,
+            'components' => $this,
+        ]);
     }
 
     public function getSchema(string $schemaName)

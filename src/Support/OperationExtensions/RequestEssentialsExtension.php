@@ -151,7 +151,12 @@ class RequestEssentialsExtension extends OperationExtension
 
         $paramNames = $route->parameterNames();
         $paramsWithRealNames = ($reflectionParams = collect($route->signatureParameters())
-            ->filter(function (ReflectionParameter $v) {
+            ->filter(function (ReflectionParameter $v) use ($paramNames) {
+                //check the method parameter is actually part of the route
+                if (! in_array($v->name, $paramNames)) {
+                    return false;
+                }
+
                 if (($type = $v->getType()) && ($type instanceof \ReflectionNamedType) && ($typeName = $type->getName())) {
                     if (is_a($typeName, Request::class, true)) {
                         return false;
@@ -291,7 +296,7 @@ class RequestEssentialsExtension extends OperationExtension
                 ? Str::upper($routeKeyName)
                 : (string) Str::of($routeKeyName)->lower()->kebab()->replace(['-', '_'], ' ');
 
-            $description = 'The '.Str::of($paramName)->kebab()->replace(['-', '_'], ' ').' '.$keyDescriptionName;
+            $description = 'The ' . Str::of($paramName)->kebab()->replace(['-', '_'], ' ') . ' ' . $keyDescriptionName;
         }
 
         $modelTraits = class_uses($type->name);

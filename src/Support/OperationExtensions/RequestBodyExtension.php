@@ -3,20 +3,22 @@
 namespace Dedoc\Scramble\Support\OperationExtensions;
 
 use Dedoc\Scramble\Extensions\OperationExtension;
+use Dedoc\Scramble\Support\Generator\Combined\AllOf;
 use Dedoc\Scramble\Support\Generator\Operation;
 use Dedoc\Scramble\Support\Generator\Parameter;
 use Dedoc\Scramble\Support\Generator\Reference;
 use Dedoc\Scramble\Support\Generator\RequestBodyObject;
 use Dedoc\Scramble\Support\Generator\Schema;
-use Dedoc\Scramble\Support\Generator\Types\ObjectType;
+use Dedoc\Scramble\Support\Generator\Types\Type;
 use Dedoc\Scramble\Support\OperationExtensions\RulesExtractor\FormRequestRulesExtractor;
-use Dedoc\Scramble\Support\OperationExtensions\RulesExtractor\RulesToParameters;
+use Dedoc\Scramble\Support\OperationExtensions\RulesExtractor\ParametersExtractionResult;
+use Dedoc\Scramble\Support\OperationExtensions\RulesExtractor\RequestMethodCallsExtractor;
 use Dedoc\Scramble\Support\OperationExtensions\RulesExtractor\ValidateCallExtractor;
 use Dedoc\Scramble\Support\RouteInfo;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use PhpParser\Node\Stmt\ClassMethod;
 use Throwable;
 
 class RequestBodyExtension extends OperationExtension
@@ -33,35 +35,26 @@ class RequestBodyExtension extends OperationExtension
          */
         $routeInfo->getMethodType();
 
-        [$bodyParams, $schemaName, $schemaDescription] = [[], null, null];
+        $rulesResults = collect();
+
         try {
-            [$bodyParams, $schemaName, $schemaDescription] = $this->extractParamsFromRequestValidationRules($routeInfo->route, $routeInfo->methodNode());
+            $rulesResults = collect($this->extractRouteRequestValidationRules($routeInfo, $routeInfo->methodNode()));
         } catch (Throwable $exception) {
             if (app()->environment('testing')) {
                 throw $exception;
             }
-            $description = $description->append('⚠️Cannot generate request documentation: '.$exception->getMessage());
+            $description = $description->append('⚠️Cannot generate request documentation: ' . $exception->getMessage());
         }
 
         $operation
             ->summary(Str::of($routeInfo->phpDoc()->getAttribute('summary'))->rtrim('.'))
             ->description($description);
 
-        $bodyParamsNames = array_map(fn ($p) => $p->name, $bodyParams);
+        $allParams = $rulesResults->flatMap->parameters->unique('name')->values()->all();
 
-        $allParams = [
-            ...$bodyParams,
-            ...array_filter(
-                array_values($routeInfo->requestParametersFromCalls->data),
-                fn ($p) => ! in_array($p->name, $bodyParamsNames),
-            ),
-        ];
         [$queryParams, $bodyParams] = collect($allParams)
-            ->partition(function (Parameter $parameter) {
-                return $parameter->getAttribute('isInQuery');
-            });
-        $queryParams = $queryParams->toArray();
-        $bodyParams = $bodyParams->toArray();
+            ->partition(fn(Parameter $p) => $p->getAttribute('isInQuery'))
+            ->map->toArray();
 
         $mediaType = $this->getMediaType($operation, $routeInfo, $allParams);
 
@@ -77,39 +70,66 @@ class RequestBodyExtension extends OperationExtension
             return;
         }
 
-        $this->addRequestBody(
-            $operation,
-            $mediaType,
-            Schema::createFromParameters($bodyParams),
-            $schemaName,
-            $schemaDescription,
-        );
-    }
+        [$schemaResults, $schemalessResults] = $rulesResults->partition('schemaName');
+        $schemalessResults = collect([$this->mergeSchemalessRulesResults($schemalessResults->values())]);
 
-    protected function addRequestBody(Operation $operation, string $mediaType, Schema $requestBodySchema, ?string $schemaName, ?string $schemaDescription)
-    {
-        if (! $schemaName) {
-            $operation->addRequestBodyObject(RequestBodyObject::make()->setContent($mediaType, $requestBodySchema));
+        $schemas = $schemaResults->merge($schemalessResults)
+            ->filter(fn(ParametersExtractionResult $r) => count($r->parameters) || $r->schemaName)
+            ->map(function (ParametersExtractionResult $r) use ($queryParams) {
+                $qpNames = collect($queryParams)->keyBy('name');
 
+                $r->parameters = collect($r->parameters)->filter(fn($p) => ! $qpNames->has($p->name))->values()->all();
+
+                return $r;
+            })
+            ->values()
+            ->map($this->makeSchemaFromResults(...));
+
+        if ($schemas->isEmpty()) {
             return;
         }
 
-        $components = $this->openApiTransformer->getComponents();
-        if (! $components->hasSchema($schemaName)) {
-            $requestBodySchema->type->setDescription($schemaDescription ?: '');
-
-            $components->addSchema($schemaName, $requestBodySchema);
+        $schema = $this->makeComposedRequestBodySchema($schemas);
+        if (! $schema instanceof Reference) {
+            $schema = Schema::fromType($schema);
         }
 
         $operation->addRequestBodyObject(
-            RequestBodyObject::make()->setContent(
-                $mediaType,
-                app(Reference::class, [
-                    'referenceType' => 'schemas',
-                    'fullName' => $schemaName,
-                    'components' => $components,
-                ]),
-            )
+            RequestBodyObject::make()->setContent($mediaType, $schema),
+        );
+    }
+
+    protected function makeSchemaFromResults(ParametersExtractionResult $result): Type
+    {
+        $requestBodySchema = Schema::createFromParameters($result->parameters);
+
+        if (! $result->schemaName) {
+            return $requestBodySchema->type;
+        }
+
+        $components = $this->openApiTransformer->getComponents();
+        if (! $components->hasSchema($result->schemaName)) {
+            $requestBodySchema->type->setDescription($result->description ?: '');
+
+            $components->addSchema($result->schemaName, $requestBodySchema);
+        }
+
+        return new Reference('schemas', $result->schemaName, $components);
+    }
+
+    protected function makeComposedRequestBodySchema(Collection $schemas)
+    {
+        if ($schemas->count() === 1) {
+            return $schemas->first();
+        }
+
+        return (new AllOf())->setItems($schemas->all());
+    }
+
+    protected function mergeSchemalessRulesResults(Collection $schemalessResults): ParametersExtractionResult
+    {
+        return new ParametersExtractionResult(
+            parameters: $schemalessResults->values()->flatMap->parameters->unique('name')->values()->all(),
         );
     }
 
@@ -141,37 +161,52 @@ class RequestBodyExtension extends OperationExtension
         });
     }
 
-    protected function extractParamsFromRequestValidationRules(Route $route, ?ClassMethod $methodNode)
+    protected function extractRouteRequestValidationRules(RouteInfo $routeInfo, $methodNode)
     {
-        [$rules, $nodesResults] = $this->extractRouteRequestValidationRules($route, $methodNode);
-
-        return [
-            (new RulesToParameters($rules, $nodesResults, $this->openApiTransformer))->handle(),
-            $nodesResults[0]->schemaName ?? null,
-            $nodesResults[0]->description ?? null,
+        /*
+         * These are the extractors that are getting types from the validation rules, so it is
+         * certain that a property must have the extracted type.
+         */
+        $typeDefiningHandlers = [
+            new FormRequestRulesExtractor($methodNode, $this->openApiTransformer),
+            new ValidateCallExtractor(
+                $methodNode,
+                $this->openApiTransformer,
+                $routeInfo->route,
+            ),
         ];
+
+        $validationRulesExtractedResults = collect($typeDefiningHandlers)
+            ->filter(static fn($h) => $h->shouldHandle())
+            ->map(static fn($h) => $h->extract($routeInfo))
+            ->values()
+            ->toArray();
+
+        /*
+         * This is the extractor that cannot re-define the incoming type but can add new properties.
+         * Also, it is useful for additional details.
+         */
+        $detailsExtractor = new RequestMethodCallsExtractor();
+
+        $methodCallsExtractedResults = $detailsExtractor->extract($routeInfo);
+
+        return $this->mergeExtractedProperties($validationRulesExtractedResults, $methodCallsExtractedResults);
     }
 
-    protected function extractRouteRequestValidationRules(Route $route, $methodNode)
-    {
-        $rules = [];
-        $nodesResults = [];
+    /**
+     * @param ParametersExtractionResult[] $rulesExtractedResults
+     */
+    protected function mergeExtractedProperties(
+        array $rulesExtractedResults,
+        ParametersExtractionResult $methodCallsExtractedResult,
+    ) {
+        $rulesParameters = collect($rulesExtractedResults)->flatMap->parameters->keyBy('name');
 
-        // Custom form request's class `validate` method
-        if (($formRequestRulesExtractor = new FormRequestRulesExtractor($methodNode))->shouldHandle()) {
-            if (count($formRequestRules = $formRequestRulesExtractor->extract($route))) {
-                $rules = array_merge($rules, $formRequestRules);
-                $nodesResults[] = $formRequestRulesExtractor->node();
-            }
-        }
+        $methodCallsExtractedResult->parameters = collect($methodCallsExtractedResult->parameters)
+            ->filter(fn(Parameter $p) => ! $rulesParameters->has($p->name))
+            ->values()
+            ->all();
 
-        if (($validateCallExtractor = new ValidateCallExtractor($methodNode, $route))->shouldHandle()) {
-            if ($validateCallRules = $validateCallExtractor->extract()) {
-                $rules = array_merge($rules, $validateCallRules);
-                $nodesResults[] = $validateCallExtractor->node();
-            }
-        }
-
-        return [$rules, array_filter($nodesResults)];
+        return [...$rulesExtractedResults, $methodCallsExtractedResult];
     }
 }

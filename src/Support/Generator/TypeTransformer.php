@@ -158,8 +158,7 @@ class TypeTransformer
                     $openApiType->examples($examples);
                 }
 
-                if ($default = ExamplesExtractor::make($docNode, '@default')
-                    ->extract(preferString: $openApiType instanceof StringType)) {
+                if ($default = ExamplesExtractor::make($docNode, '@default')->extract(preferString: $openApiType instanceof StringType)) {
                     $openApiType->default($default[0]);
                 }
 

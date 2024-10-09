@@ -196,9 +196,10 @@ class RequestBodyExtension extends OperationExtension
     /**
      * @param ParametersExtractionResult[] $rulesExtractedResults
      */
-    protected function mergeExtractedProperties(array $rulesExtractedResults,
-        ParametersExtractionResult $methodCallsExtractedResult)
-    {
+    protected function mergeExtractedProperties(
+        array $rulesExtractedResults,
+        ParametersExtractionResult $methodCallsExtractedResult,
+    ) {
         $rulesParameters = collect($rulesExtractedResults)->flatMap->parameters->keyBy('name');
 
         $methodCallsExtractedResult->parameters = collect($methodCallsExtractedResult->parameters)

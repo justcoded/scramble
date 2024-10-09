@@ -1,8 +1,23 @@
 <?php
 
+use Dedoc\Scramble\Scramble;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as RouteFacade;
+
+it('doesnt add body when empty', function () {
+    $openApiDocument = generateForRoute(function () {
+        return RouteFacade::post('api/test', [RequestBodyExtensionTest__doesnt_use_body_when_empty::class, 'store']);
+    });
+
+    expect($openApiDocument['paths']['/test']['post'])
+        ->not->toHaveKey('requestBody');
+});
+class RequestBodyExtensionTest__doesnt_use_body_when_empty
+{
+    public function store(Illuminate\Http\Request $request) {}
+}
 
 it('uses application/json media type as a default request media type', function () {
     $openApiDocument = generateForRoute(function () {
@@ -409,6 +424,38 @@ class CustomSchemaNameFormRequest extends FormRequest
     public function rules()
     {
         return ['foo' => 'integer'];
+    }
+}
+
+it('allows to use validation on form request', function () {
+    $routes = collect([
+        RouteFacade::post('a', [AllowsBothFormRequestAndInlineValidationRules::class, 'a']),
+        RouteFacade::post('b', [AllowsBothFormRequestAndInlineValidationRules::class, 'b']),
+    ])->map->uri->toArray();
+
+    Scramble::routes(fn (Route $r) => in_array($r->uri, $routes));
+
+    $document = app()->make(\Dedoc\Scramble\Generator::class)();
+
+    expect($document)->toMatchSnapshot();
+});
+class FormRequest_WithData extends FormRequest
+{
+    public function rules()
+    {
+        return ['foo' => 'string'];
+    }
+}
+class AllowsBothFormRequestAndInlineValidationRules
+{
+    public function a(FormRequest_WithData $request)
+    {
+        $request->validate(['bar' => 'string']);
+    }
+
+    public function b(FormRequest_WithData $request)
+    {
+        $request->validate(['baz' => 'numeric']);
     }
 }
 

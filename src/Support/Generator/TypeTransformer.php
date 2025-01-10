@@ -136,14 +136,18 @@ class TypeTransformer
                     : $openApiType;
 
                 $enumNode = array_values($docNode->getTagsByName('@enum'))[0] ?? null;
+
                 if ($enumNode) {
                     $values = explode('|', $enumNode->value->value);
+                    $nullable = $openApiType->nullable;
 
                     if (is_int($values[0])) {
-                        $openApiType = (new IntegerType())->enum($values);
+                        $openApiType = new IntegerType();
                     } else {
-                        $openApiType = (new StringType())->enum($values);
+                        $openApiType = new StringType();
                     }
+
+                    $openApiType->nullable($nullable)->enum($values);
                 }
 
                 $commentDescription = trim($docNode->getAttribute('summary') . ' ' . $docNode->getAttribute('description'));

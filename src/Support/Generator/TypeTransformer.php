@@ -26,6 +26,7 @@ use Dedoc\Scramble\Support\Type\Type;
 use Dedoc\Scramble\Support\Type\Union;
 use Illuminate\Support\Str;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
 
 /**
  * Transforms PHP type to OpenAPI schema type.
@@ -139,7 +140,8 @@ class TypeTransformer
 
                 if ($enumNode) {
                     $values = explode('|', $enumNode->value->value);
-                    $nullable = $openApiType->nullable;
+                    //TODO: uncomment this, find out why for some resources this value is true, while it shouldn't be
+                    //$nullable = $openApiType->nullable;
 
                     if (is_int($values[0])) {
                         $openApiType = new IntegerType();
@@ -147,7 +149,17 @@ class TypeTransformer
                         $openApiType = new StringType();
                     }
 
-                    $openApiType->nullable($nullable)->enum($values);
+                    //TODO: get rid of this, take nullable prop from the original $openApiType
+                    if ($varNode) {
+                        /** @var VarTagValueNode $varNode */
+                        foreach ($varNode->type->types as $varNodeType) {
+                            if ($varNodeType->name === 'null') {
+                                $openApiType->nullable(true);
+                            }
+                        }
+                    }
+
+                    $openApiType->enum($values);
                 }
 
                 $commentDescription = trim($docNode->getAttribute('summary') . ' ' . $docNode->getAttribute('description'));

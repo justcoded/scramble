@@ -155,6 +155,7 @@ class TypeTransformer
                         foreach ($varNode->type->types as $varNodeType) {
                             if ($varNodeType->name === 'null') {
                                 $openApiType->nullable(true);
+                                break;
                             }
                         }
                     }

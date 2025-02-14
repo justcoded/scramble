@@ -29,11 +29,11 @@ class Generator
     protected bool $throwExceptions = true;
 
     public function __construct(
-        private TypeTransformer $transformer,
-        private OperationBuilder $operationBuilder,
-        private ServerFactory $serverFactory,
-        private FileParser $fileParser,
-        private Infer $infer
+        protected TypeTransformer $transformer,
+        protected OperationBuilder $operationBuilder,
+        protected ServerFactory $serverFactory,
+        protected FileParser $fileParser,
+        protected Infer $infer,
     ) {}
 
     public function setThrowExceptions(bool $throwExceptions): static
@@ -44,6 +44,11 @@ class Generator
     }
 
     public function __invoke(?GeneratorConfig $config = null)
+    {
+        return $this->generate($config)->toArray();
+    }
+
+    public function generate(?GeneratorConfig $config = null): OpenApi
     {
         $config ??= (new GeneratorConfig(config('scramble')))
             ->routes(Scramble::$routeResolver)
@@ -64,21 +69,21 @@ class Generator
                         $method = $route->methods()[0];
                         $action = $route->getAction('uses');
 
-                        dump("Error when analyzing route '$method $route->uri' ($action): {$e->getMessage()} – ".($e->getFile().' on line '.$e->getLine()));
-                        logger()->error("Error when analyzing route '$method $route->uri' ($action): {$e->getMessage()} – ".($e->getFile().' on line '.$e->getLine()));
+                        dump("Error when analyzing route '$method $route->uri' ($action): {$e->getMessage()} – " . ($e->getFile() . ' on line ' . $e->getLine()));
+                        logger()->error("Error when analyzing route '$method $route->uri' ($action): {$e->getMessage()} – " . ($e->getFile() . ' on line ' . $e->getLine()));
                     }
 
                     throw $e;
                 }
             })
             ->filter() // Closure based routes are filtered out for now, right here
-            ->sortBy(fn (Operation $o) => $o->tags[0] ?? $o->description)
-            ->each(fn (Operation $operation) => $openApi->addPath(
+            ->sortBy(fn(Operation $o) => $o->tags[0] ?? $o->description)
+            ->each(fn(Operation $operation) => $openApi->addPath(
                 Path::make(
                     (string) Str::of($operation->path)
-                        ->replaceFirst($config->get('api_path', 'api'), '')
-                        ->trim('/')
-                )->addOperation($operation)
+                        ->replaceFirst(rtrim($config->get('api_path', 'api'), '/') . '/', '/')
+                        ->trim('/'),
+                )->addOperation($operation),
             ))
             ->toArray();
 
@@ -90,35 +95,36 @@ class Generator
             $afterOpenApiGenerated($openApi);
         }
 
-        return $openApi->toArray();
+        return $openApi;
     }
 
-    private function makeOpenApi(GeneratorConfig $config)
+    protected function makeOpenApi(GeneratorConfig $config)
     {
         $openApi = OpenApi::make('3.1.0')
             ->setComponents($this->transformer->getComponents())
             ->setInfo(
                 InfoObject::make($config->get('ui.title', $default = config('app.name')) ?: $default)
                     ->setVersion($config->get('info.version', '0.0.1'))
-                    ->setDescription($config->get('info.description', ''))
+                    ->setDescription($config->get('info.description', '')),
             );
 
         [$defaultProtocol] = explode('://', url('/'));
-        $servers = $config->get('servers') ?: [
-            '' => ($domain = $config->get('api_domain'))
-                ? $defaultProtocol.'://'.$domain.'/'.$config->get('api_path', 'api')
-                : $config->get('api_path', 'api'),
-        ];
+        $servers = $config->get('servers')
+            ?: [
+                '' => ($domain = $config->get('api_domain'))
+                    ? $defaultProtocol . '://' . $domain . '/' . $config->get('api_path', 'api')
+                    : $config->get('api_path', 'api'),
+            ];
         foreach ($servers as $description => $url) {
             $openApi->addServer(
-                $this->serverFactory->make(url($url ?: '/'), $description)
+                $this->serverFactory->make(url($url ?: '/'), $description),
             );
         }
 
         return $openApi;
     }
 
-    private function getRoutes(GeneratorConfig $config): Collection
+    protected function getRoutes(GeneratorConfig $config): Collection
     {
         return collect(RouteFacade::getRoutes())
             ->pipe(function (Collection $c) {
@@ -145,11 +151,11 @@ class Generator
                 return ! ($name = $route->getAction('as')) || ! Str::startsWith($name, 'scramble');
             })
             ->filter($config->routes())
-            ->filter(fn (Route $r) => $r->getAction('controller'))
+            ->filter(fn(Route $r) => $r->getAction('controller'))
             ->values();
     }
 
-    private function routeToOperation(OpenApi $openApi, Route $route, GeneratorConfig $config)
+    protected function routeToOperation(OpenApi $openApi, Route $route, GeneratorConfig $config)
     {
         $routeInfo = new RouteInfo($route, $this->fileParser, $this->infer);
 
@@ -164,7 +170,7 @@ class Generator
         return $operation;
     }
 
-    private function ensureSchemaTypes(Route $route, Operation $operation): void
+    protected function ensureSchemaTypes(Route $route, Operation $operation): void
     {
         if (! Scramble::getSchemaValidator()->hasRules()) {
             return;
@@ -183,14 +189,16 @@ class Generator
         }
     }
 
-    private function createSchemaEnforceTraverser(Route $route)
+    protected function createSchemaEnforceTraverser(Route $route)
     {
-        $traverser = new OpenApiTraverser([$visitor = new SchemaEnforceVisitor($route, $this->throwExceptions, $this->exceptions)]);
+        $traverser = new OpenApiTraverser([$visitor = new SchemaEnforceVisitor($route,
+            $this->throwExceptions,
+            $this->exceptions)]);
 
         return [$traverser, $visitor];
     }
 
-    private function moveSameAlternativeServersToPath(OpenApi $openApi)
+    protected function moveSameAlternativeServersToPath(OpenApi $openApi)
     {
         foreach (collect($openApi->paths)->groupBy('path') as $pathsGroup) {
             if ($pathsGroup->isEmpty()) {
@@ -200,9 +208,9 @@ class Generator
             $operations = collect($pathsGroup->pluck('operations')->flatten());
 
             $operationsHaveSameAlternativeServers = $operations->count()
-                && $operations->every(fn (Operation $o) => count($o->servers))
+                && $operations->every(fn(Operation $o) => count($o->servers))
                 && $operations->unique(function (Operation $o) {
-                    return collect($o->servers)->map(fn (Server $s) => $s->url)->join('.');
+                    return collect($o->servers)->map(fn(Server $s) => $s->url)->join('.');
                 })->count() === 1;
 
             if (! $operationsHaveSameAlternativeServers) {
@@ -217,9 +225,9 @@ class Generator
         }
     }
 
-    private function setUniqueOperationId(OpenApi $openApi)
+    protected function setUniqueOperationId(OpenApi $openApi)
     {
-        $names = new UniqueNamesOptionsCollection;
+        $names = new UniqueNamesOptionsCollection();
 
         $this->foreachOperation($openApi, function (Operation $operation) use ($names) {
             $names->push($operation->getAttribute('operationId'));
@@ -234,7 +242,7 @@ class Generator
         });
     }
 
-    private function foreachOperation(OpenApi $openApi, callable $callback)
+    protected function foreachOperation(OpenApi $openApi, callable $callback)
     {
         foreach (collect($openApi->paths)->groupBy('path') as $pathsGroup) {
             if ($pathsGroup->isEmpty()) {

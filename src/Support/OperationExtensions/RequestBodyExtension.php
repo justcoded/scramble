@@ -43,7 +43,7 @@ class RequestBodyExtension extends OperationExtension
             if (app()->environment('testing')) {
                 throw $exception;
             }
-            $description = $description->append('⚠️Cannot generate request documentation: '.$exception->getMessage());
+            $description = $description->append('⚠️Cannot generate request documentation: ' . $exception->getMessage());
         }
 
         $operation
@@ -53,12 +53,13 @@ class RequestBodyExtension extends OperationExtension
         $allParams = $rulesResults->flatMap->parameters->unique('name')->values()->all();
 
         [$queryParams, $bodyParams] = collect($allParams)
-            ->partition(fn (Parameter $p) => $p->getAttribute('isInQuery'))
+            ->partition(fn(Parameter $p) => $p->getAttribute('isInQuery'))
             ->map->toArray();
 
         $mediaType = $this->getMediaType($operation, $routeInfo, $allParams);
 
         if (empty($allParams)) {
+            // no request params - no request body, regardless of method
             return;
         }
 
@@ -73,11 +74,11 @@ class RequestBodyExtension extends OperationExtension
         $schemalessResults = collect([$this->mergeSchemalessRulesResults($schemalessResults->values())]);
 
         $schemas = $schemaResults->merge($schemalessResults)
-            ->filter(fn (ParametersExtractionResult $r) => count($r->parameters) || $r->schemaName)
+            ->filter(fn(ParametersExtractionResult $r) => count($r->parameters) || $r->schemaName)
             ->map(function (ParametersExtractionResult $r) use ($queryParams) {
                 $qpNames = collect($queryParams)->keyBy('name');
 
-                $r->parameters = collect($r->parameters)->filter(fn ($p) => ! $qpNames->has($p->name))->values()->all();
+                $r->parameters = collect($r->parameters)->filter(fn($p) => ! $qpNames->has($p->name))->values()->all();
 
                 return $r;
             })
@@ -122,7 +123,7 @@ class RequestBodyExtension extends OperationExtension
             return $schemas->first();
         }
 
-        return (new AllOf)->setItems($schemas->all());
+        return (new AllOf())->setItems($schemas->all());
     }
 
     protected function mergeSchemalessRulesResults(Collection $schemalessResults): ParametersExtractionResult
@@ -168,12 +169,16 @@ class RequestBodyExtension extends OperationExtension
          */
         $typeDefiningHandlers = [
             new FormRequestRulesExtractor($methodNode, $this->openApiTransformer),
-            new ValidateCallExtractor($methodNode, $this->openApiTransformer),
+            new ValidateCallExtractor(
+                $methodNode,
+                $this->openApiTransformer,
+                $routeInfo->route,
+            ),
         ];
 
         $validationRulesExtractedResults = collect($typeDefiningHandlers)
-            ->filter(fn ($h) => $h->shouldHandle())
-            ->map(fn ($h) => $h->extract($routeInfo))
+            ->filter(static fn($h) => $h->shouldHandle())
+            ->map(static fn($h) => $h->extract($routeInfo))
             ->values()
             ->toArray();
 
@@ -181,7 +186,7 @@ class RequestBodyExtension extends OperationExtension
          * This is the extractor that cannot re-define the incoming type but can add new properties.
          * Also, it is useful for additional details.
          */
-        $detailsExtractor = new RequestMethodCallsExtractor;
+        $detailsExtractor = new RequestMethodCallsExtractor();
 
         $methodCallsExtractedResults = $detailsExtractor->extract($routeInfo);
 
@@ -189,20 +194,18 @@ class RequestBodyExtension extends OperationExtension
     }
 
     /**
-     * @param  ParametersExtractionResult[]  $rulesExtractedResults
+     * @param ParametersExtractionResult[] $rulesExtractedResults
      */
-    protected function mergeExtractedProperties(array $rulesExtractedResults, ParametersExtractionResult $methodCallsExtractedResult)
-    {
+    protected function mergeExtractedProperties(
+        array $rulesExtractedResults,
+        ParametersExtractionResult $methodCallsExtractedResult,
+    ) {
         $rulesParameters = collect($rulesExtractedResults)->flatMap->parameters->keyBy('name');
 
         $methodCallsExtractedResult->parameters = collect($methodCallsExtractedResult->parameters)
-            ->filter(fn (Parameter $p) => ! $rulesParameters->has($p->name))
+            ->filter(fn(Parameter $p) => ! $rulesParameters->has($p->name))
             ->values()
             ->all();
-
-        /*
-         * Possible improvements here: using defaults when merging results, etc.
-         */
 
         return [...$rulesExtractedResults, $methodCallsExtractedResult];
     }

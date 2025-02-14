@@ -40,6 +40,10 @@ class AuthenticationExceptionToResponseExtension extends ExceptionToResponseExte
 
     public function reference(ObjectType $type)
     {
-        return new Reference('responses', Str::start($type->name, '\\'), $this->components);
+        return app(Reference::class, [
+            'referenceType' => 'responses',
+            'fullName' => Str::start($type->name, '\\'),
+            'components' => $this->components,
+        ]);
     }
 }

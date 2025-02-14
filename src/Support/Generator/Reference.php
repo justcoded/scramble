@@ -21,6 +21,15 @@ class Reference extends Type
         $this->components = $components;
     }
 
+    public static function make(string $referenceType, string $fullName, Components $components): static
+    {
+        return new static(
+            referenceType: $referenceType,
+            fullName: $fullName,
+            components: $components,
+        );
+    }
+
     public function resolve()
     {
         return $this->components->get($this);

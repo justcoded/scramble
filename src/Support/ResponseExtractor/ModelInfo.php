@@ -33,7 +33,7 @@ class ModelInfo
     ];
 
     public function __construct(
-        private string $class
+        private string $class,
     ) {}
 
     public function handle()
@@ -64,7 +64,8 @@ class ModelInfo
     /**
      * Get the column attributes for the given model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
      * @return \Illuminate\Support\Collection
      */
     protected function getAttributes($model)
@@ -77,7 +78,7 @@ class ModelInfo
 
         return collect($columns)
             ->values()
-            ->map(fn ($column) => [
+            ->map(fn($column) => [
                 'driver' => $connection->getDriverName(),
                 'name' => $column['name'],
                 'type' => $column['type'],
@@ -108,15 +109,16 @@ class ModelInfo
     private function columnIsUnique($column, array $indexes)
     {
         return collect($indexes)->contains(
-            fn ($index) => count($index['columns']) === 1 && $index['columns'][0] === $column && $index['unique']
+            fn($index) => count($index['columns']) === 1 && $index['columns'][0] === $column && $index['unique'],
         );
     }
 
     /**
      * Get the virtual (non-column) attributes for the given model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
-     * @param  array[]  $columns
+     * @param \Illuminate\Database\Eloquent\Model $model
+     * @param array[] $columns
+     *
      * @return \Illuminate\Support\Collection
      */
     protected function getVirtualAttributes($model, $columns)
@@ -127,9 +129,9 @@ class ModelInfo
 
         return collect($class->getMethods())
             ->reject(
-                fn (ReflectionMethod $method) => $method->isStatic()
+                fn(ReflectionMethod $method) => $method->isStatic()
                     || $method->isAbstract()
-                    || $method->getDeclaringClass()->getName() !== get_class($model)
+                    || $method->getDeclaringClass()->getName() !== get_class($model),
             )
             ->mapWithKeys(function (ReflectionMethod $method) use ($model) {
                 if (preg_match('/^get(.*)Attribute$/', $method->getName(), $matches) === 1) {
@@ -140,8 +142,8 @@ class ModelInfo
                     return [];
                 }
             })
-            ->reject(fn ($cast, $name) => $keyedColumns->has($name))
-            ->map(fn ($cast, $name) => [
+            ->reject(fn($cast, $name) => $keyedColumns->has($name))
+            ->map(fn($cast, $name) => [
                 'driver' => null,
                 'name' => $name,
                 'type' => null,
@@ -160,15 +162,16 @@ class ModelInfo
     /**
      * Get the relations from the given model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
      * @return \Illuminate\Support\Collection
      */
     protected function getRelations($model)
     {
         return collect(get_class_methods($model))
-            ->map(fn ($method) => new ReflectionMethod($model, $method))
+            ->map(fn($method) => new ReflectionMethod($model, $method))
             ->reject(
-                fn (ReflectionMethod $method) => $method->isStatic()
+                fn(ReflectionMethod $method) => $method->isStatic()
                     || $method->isAbstract()
                     || $method->getDeclaringClass()->getName() === Model::class,
             )
@@ -182,7 +185,7 @@ class ModelInfo
                 }
 
                 return collect($this->relationMethods)
-                    ->contains(fn ($relationMethod) => str_contains($code, '$this->'.$relationMethod.'('));
+                    ->contains(fn($relationMethod) => str_contains($code, '$this->' . $relationMethod . '('));
             })
             ->map(function (ReflectionMethod $method) use ($model) {
                 try {
@@ -223,8 +226,9 @@ class ModelInfo
     /**
      * Get the cast type for the given column.
      *
-     * @param  string  $column
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param string $column
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
      * @return string|null
      */
     protected function getCastType($column, $model)
@@ -243,7 +247,8 @@ class ModelInfo
     /**
      * Get the model casts, including any date casts.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
      * @return \Illuminate\Support\Collection
      */
     protected function getCastsWithDates($model)
@@ -251,15 +256,16 @@ class ModelInfo
         return collect($model->getDates())
             ->filter()
             ->flip()
-            ->map(fn () => 'datetime')
+            ->map(fn() => 'datetime')
             ->merge($model->getCasts());
     }
 
     /**
      * Determine if the given attribute is hidden.
      *
-     * @param  string  $attribute
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param string $attribute
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
      * @return bool
      */
     protected function attributeIsHidden($attribute, $model)
@@ -303,7 +309,7 @@ class ModelInfo
         }
 
         return is_dir(app_path('Models'))
-            ? $rootNamespace.'Models\\'.$model
-            : $rootNamespace.$model;
+            ? $rootNamespace . 'Models\\' . $model
+            : $rootNamespace . $model;
     }
 }

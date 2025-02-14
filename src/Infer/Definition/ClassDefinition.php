@@ -31,6 +31,8 @@ class ClassDefinition
         /** @var array<string, FunctionLikeDefinition> $methods */
         public array $methods = [],
         public ?string $parentFqn = null,
+        public array $annotations = [],
+        public array $attributes = [],
     ) {}
 
     public function isInstanceOf(string $className)

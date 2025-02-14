@@ -25,6 +25,15 @@ class ArrayItemType_ extends AbstractType
         $this->value = $value;
         $this->isOptional = $isOptional;
         $this->shouldUnpack = $shouldUnpack;
+
+        if (! $this->isOptional && $this->value instanceof Union) {
+            foreach ($this->value->types as $type) {
+                if ($type instanceof NullType) {
+                    $this->isOptional = true;
+                    break;
+                }
+            }
+        }
     }
 
     public function nodes(): array

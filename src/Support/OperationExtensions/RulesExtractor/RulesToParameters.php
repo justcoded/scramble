@@ -31,7 +31,7 @@ class RulesToParameters
         $this->nodeDocs = $this->extractNodeDocs($validationNodesResults);
     }
 
-    public function handle()
+    public function handle(): array
     {
         return collect($this->rules)
             ->pipe($this->handleConfirmed(...))

@@ -9,12 +9,22 @@ class ClassBasedReference
 {
     public static function create(string $referenceType, string $className, Components $components)
     {
-        return new Reference($referenceType, $className, $components, static::getClassBasedName($className));
+        return app(Reference::class, [
+            'referenceType' => $referenceType,
+            'fullName' => $className,
+            'components' => $components,
+            'shortName' => static::getClassBasedName($className)
+        ]);
     }
 
     public static function createInput(string $referenceType, string $className, Components $components)
     {
-        return new Reference($referenceType, $className, $components, static::getClassBasedName($className, input: true));
+        return app(Reference::class, [
+            'referenceType' => $referenceType,
+            'fullName' => $className,
+            'components' => $components,
+            'shortName' => static::getClassBasedName($className, input: true)
+        ]);
     }
 
     private static function getClassBasedName(string $className, bool $input = false): ?string

@@ -36,8 +36,8 @@ class Generator
     protected bool $throwExceptions = true;
 
     public function __construct(
-        private OperationBuilder $operationBuilder,
-        private Infer $infer
+        protected OperationBuilder $operationBuilder,
+        protected Infer $infer
     ) {}
 
     public function setThrowExceptions(bool $throwExceptions): static
@@ -228,7 +228,7 @@ class Generator
         ]);
     }
 
-    private function routeToOperation(OpenApi $openApi, Route $route, GeneratorConfig $config, TypeTransformer $typeTransformer)
+    protected function routeToOperation(OpenApi $openApi, Route $route, GeneratorConfig $config, TypeTransformer $typeTransformer)
     {
         $routeInfo = new RouteInfo($route, $this->infer, $typeTransformer);
 

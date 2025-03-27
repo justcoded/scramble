@@ -131,22 +131,6 @@ class ValidateCallParametersExtractor implements ParameterExtractor
             })
             ->toArray();
 
-        //TODO: do something with old code
-        //return new ParametersExtractionResult(
-        //    parameters: $this->makeParameters(
-        //        node: (new NodeFinder())->find(
-        //            $validationRulesNode instanceof Node\Expr\Array_ ? $validationRulesNode->items : [],
-        //            fn(Node $node) => $node instanceof Node\Expr\ArrayItem
-        //                && $node->key instanceof Node\Scalar\String_
-        //                && $node->getAttribute('parsedPhpDoc'),
-        //        ),
-        //        rules: $this->rules($validationRulesNode),
-        //        typeTransformer: $this->typeTransformer,
-        //    ),
-        //    schemaName: $phpDocReflector->getSchemaName(),
-        //    description: $phpDocReflector->getDescription(),
-        //);
-
         return $paramsMap[$node->name] ?? null;
 
     }
@@ -156,12 +140,6 @@ class ValidateCallParametersExtractor implements ParameterExtractor
         if (! $validationRules) {
             return [];
         }
-
-        //TODO: do something with old code
-        //$methodNode = $this->handle;
-        //
-        //$printer = new Standard();
-        //$validationRulesCode = $printer->prettyPrint([$validationRules]);
 
         $validationRulesCode = $this->printer->prettyPrint([$validationRules]);
 

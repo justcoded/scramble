@@ -199,34 +199,6 @@ class RequestBodyExtension extends OperationExtension
 
     private function extractParameters(Operation $operation, RouteInfo $routeInfo)
     {
-        //TODO: do something with the old code
-        ///*
-        // * These are the extractors that are getting types from the validation rules, so it is
-        // * certain that a property must have the extracted type.
-        // */
-        //$typeDefiningHandlers = [
-        //    new FormRequestRulesExtractor($methodNode, $this->openApiTransformer),
-        //    new ValidateCallExtractor(
-        //        $methodNode,
-        //        $this->openApiTransformer,
-        //        $routeInfo->route,
-        //    ),
-        //];
-        //
-        //$validationRulesExtractedResults = collect($typeDefiningHandlers)
-        //    ->filter(static fn($h) => $h->shouldHandle())
-        //    ->map(static fn($h) => $h->extract($routeInfo))
-        //    ->values()
-        //    ->toArray();
-        //
-        ///*
-        // * This is the extractor that cannot re-define the incoming type but can add new properties.
-        // * Also, it is useful for additional details.
-        // */
-        //$detailsExtractor = new RequestMethodCallsExtractor();
-        //
-        //$methodCallsExtractedResults = $detailsExtractor->extract($routeInfo);
-        //
         $result = [];
         foreach ($this->config->parametersExtractors->all() as $extractorClass) {
             $extractor = ContainerUtils::makeContextable($extractorClass, [

@@ -49,13 +49,6 @@ class EnumToSchema extends TypeToSchemaExtension
 
     public function reference(ObjectType $type)
     {
-        //TODO: need to resolve references here
-        /*return app(Reference::class, [
-            'referenceType' => 'schemas',
-            'fullName' => $type->name,
-            'components' => $this->components,
-        ]);*/
-
         return ClassBasedReference::create(
             'schemas',
             $type->name,

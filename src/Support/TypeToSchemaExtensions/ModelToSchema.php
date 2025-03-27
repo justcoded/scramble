@@ -59,12 +59,6 @@ class ModelToSchema extends TypeToSchemaExtension
 
     public function reference(ObjectType $type)
     {
-        //TODO: resolve references
-        /*return app(Reference::class, [
-            'referenceType' => 'schemas',
-            'fullName' => $type->name,
-            'components' => $this->components,
-        ]);*/
         return ClassBasedReference::create('schemas', $type->name, $this->components);
     }
 }

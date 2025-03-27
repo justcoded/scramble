@@ -45,11 +45,12 @@ class JsonResourceHelper
         $phpDoc = $reflectionClass->getDocComment() ?: '';
 
         $mixinOrPropertyLine = Str::of($phpDoc)
+            ->replace(['/**', '*/'], '')
             ->explode("\n")
             ->first(fn ($str) => Str::is(['*@property*$resource', '*@mixin*'], $str));
 
         if ($mixinOrPropertyLine) {
-            $modelName = Str::replace(['@property-read', '$resource', '@mixin', ' ', '*'], '', $mixinOrPropertyLine);
+            $modelName = Str::replace(['@property-read', '$resource', '@mixin', ' ', '*', "\r"], '', $mixinOrPropertyLine);
             $modelName = Str::replace('@property','', $modelName);
 
             $modelClass = $getFqName($modelName);

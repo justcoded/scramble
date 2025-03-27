@@ -15,8 +15,10 @@ class SamplePostModel extends Model
     protected $with = ['parent', 'children', 'user'];
 
     protected $casts = [
+        'read_time' => 'int',
         'status' => Status::class,
         'settings' => 'array',
+        'approved_at' => 'datetime',
     ];
 
     public function getReadTimeAttribute()

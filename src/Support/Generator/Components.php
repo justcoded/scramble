@@ -81,6 +81,9 @@ class Components
         return $result;
     }
 
+    /**
+     * @deprecated Use context instead
+     */
     public function uniqueSchemaName(string $fullName)
     {
         $shortestPossibleName = class_basename($fullName);
@@ -111,6 +114,11 @@ class Components
         return $this->schemas[$schemaName];
     }
 
+    /**
+     * @internal
+     *
+     * @deprecated
+     */
     public static function slug(string $name)
     {
         return Str::replace('\\', '.', $name);

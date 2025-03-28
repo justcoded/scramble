@@ -4,10 +4,12 @@ namespace Dedoc\Scramble\Support\Generator\Types;
 
 use Dedoc\Scramble\Support\Generator\MissingExample;
 use Dedoc\Scramble\Support\Generator\WithAttributes;
+use Dedoc\Scramble\Support\Generator\WithExtensions;
 
 abstract class Type
 {
     use WithAttributes;
+    use WithExtensions;
 
     public string $type;
 
@@ -18,6 +20,7 @@ abstract class Type
     public string $description = '';
 
     public string $contentMediaType = '';
+
     public string $contentEncoding = '';
 
     /** @var array|scalar|null|MissingExample */
@@ -54,16 +57,16 @@ abstract class Type
         return $this;
     }
 
-    public function contentMediaType(string $format)
+    public function contentMediaType(string $mediaType)
     {
-        $this->contentMediaType = $format;
+        $this->contentMediaType = $mediaType;
 
         return $this;
     }
 
-    public function contentEncoding(string $format)
+    public function contentEncoding(string $encoding)
     {
-        $this->contentEncoding = $format;
+        $this->contentEncoding = $encoding;
 
         return $this;
     }
@@ -101,6 +104,7 @@ abstract class Type
                     ->values()
                     ->toArray()
             ) ? ['examples' => $examples] : [],
+            $this->extensionPropertiesToArray(),
         );
     }
 

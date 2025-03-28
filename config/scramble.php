@@ -52,6 +52,11 @@ return [
         'hide_try_it' => false,
 
         /*
+         * Hide the schemas in the Table of Contents. Enabled by default.
+         */
+        'hide_schemas' => false,
+
+        /*
          * URL to an image that displays as a small square logo next to the title, above the table of contents.
          */
         'logo' => '',
@@ -77,6 +82,17 @@ return [
      * ```
      */
     'servers' => null,
+
+    /**
+     * Determines how Scramble stores the descriptions of enum cases.
+     * Available options:
+     * - 'description' – Case descriptions are stored as the enum schema's description using table formatting.
+     * - 'extension' – Case descriptions are stored in the `x-enumDescriptions` enum schema extension.
+     *
+     *    @see https://redocly.com/docs-legacy/api-reference-docs/specification-extensions/x-enum-descriptions
+     * - false - Case descriptions are ignored.
+     */
+    'enum_cases_description_strategy' => 'description',
 
     'middleware' => [
         'web',

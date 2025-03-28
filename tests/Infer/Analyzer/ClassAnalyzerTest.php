@@ -104,3 +104,133 @@ it('analyzes call to parent setter methods in child constructor', function () {
 
     expect($type->toString())->toBe('Dedoc\Scramble\Tests\Infer\stubs\ChildParentSetterCalls<string(from ChildParentSetterCalls constructor), string(from ChildParentSetterCalls wow), string(some)>');
 });
+
+it('analyzes fluent setters called in constructor', function () {
+    $this->classAnalyzer->analyze(Foo_ClassAnalyzerTest::class);
+
+    $type = getStatementType('new Foo_ClassAnalyzerTest()');
+
+    expect($type->toString())->toBe('Foo_ClassAnalyzerTest<int(42), string(baz)>');
+});
+class Foo_ClassAnalyzerTest
+{
+    public int $foo;
+
+    public string $bar;
+
+    public function __construct()
+    {
+        $this
+            ->setFoo(42)
+            ->setBar('baz');
+    }
+
+    public function setFoo($number)
+    {
+        $this->foo = $number;
+
+        return $this;
+    }
+
+    public function setBar($string)
+    {
+        $this->bar = $string;
+
+        return $this;
+    }
+}
+
+it('analyzes not fluent setters called in constructor', function () {
+    $this->classAnalyzer->analyze(FooNotFluent_ClassAnalyzerTest::class);
+
+    $type = getStatementType('new FooNotFluent_ClassAnalyzerTest()');
+
+    expect($type->toString())->toBe('FooNotFluent_ClassAnalyzerTest<int(42), string(baz)>');
+});
+class FooNotFluent_ClassAnalyzerTest
+{
+    public int $foo;
+
+    public string $bar;
+
+    public function __construct()
+    {
+        $this->setFoo(42);
+        $this->setBar('baz');
+    }
+
+    public function setFoo($number)
+    {
+        $this->foo = $number;
+    }
+
+    public function setBar($string)
+    {
+        $this->bar = $string;
+    }
+}
+
+it('analyzes static method call on class constants', function () {
+    $this->classAnalyzer->analyze(ConstFetchStaticCallChild_ClassAnalyzerTest::class);
+
+    $type = getStatementType('(new ConstFetchStaticCallChild_ClassAnalyzerTest)->staticMethodCall()');
+
+    expect($type->toString())->toBe('int(42)');
+});
+
+it('analyzes new call on class constants', function () {
+    $this->classAnalyzer->analyze(ConstFetchStaticCallChild_ClassAnalyzerTest::class);
+
+    $type = getStatementType('(new ConstFetchStaticCallChild_ClassAnalyzerTest)->newCall()');
+
+    expect($type->toString())->toBe('ConstFetchStaticCallFoo_ClassAnalyzerTest');
+});
+
+class ConstFetchStaticCallParent_ClassAnalyzerTest
+{
+    public function staticMethodCall()
+    {
+        return (static::FOO_CLASS)::foo();
+    }
+
+    public function newCall()
+    {
+        return new (static::FOO_CLASS);
+    }
+}
+class ConstFetchStaticCallChild_ClassAnalyzerTest extends ConstFetchStaticCallParent_ClassAnalyzerTest
+{
+    public const FOO_CLASS = ConstFetchStaticCallFoo_ClassAnalyzerTest::class;
+}
+class ConstFetchStaticCallFoo_ClassAnalyzerTest
+{
+    public static function foo()
+    {
+        return 42;
+    }
+}
+
+it('analyzes call on typed properties', function () {
+    $this->classAnalyzer->analyze(InjectedProperty_ClassAnalyzerTest::class);
+
+    $type = getStatementType('(new InjectedProperty_ClassAnalyzerTest)->bar()');
+
+    expect($type->toString())->toBe('int(42)');
+});
+
+class InjectedProperty_ClassAnalyzerTest
+{
+    public function __construct(private FooProperty_ClassAnalyzerTest $fooProp) {}
+
+    public function bar()
+    {
+        return $this->fooProp->foo();
+    }
+}
+class FooProperty_ClassAnalyzerTest
+{
+    public function foo()
+    {
+        return 42;
+    }
+}

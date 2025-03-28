@@ -38,18 +38,11 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
 class TypeTransformer
 {
     public function __construct(
-        private Infer $infer,
-        private OpenApiContext $context,
-        private array $typeToSchemaExtensions = [],
-        private array $exceptionToResponseExtensions = [],
+        protected Infer $infer,
+        protected OpenApiContext $context,
+        protected array $typeToSchemaExtensions = [],
+        protected array $exceptionToResponseExtensions = [],
     ) {}
-
-    public function resetState(): static
-    {
-        $this->components = new Components();
-
-        return $this;
-    }
 
     public function getComponents(): Components
     {

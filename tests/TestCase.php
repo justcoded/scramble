@@ -17,6 +17,8 @@ class TestCase extends Orchestra
     {
         parent::setUp();
 
+        Scramble::throwOnError();
+
         $this->app->when(RulesToParameters::class)
             ->needs('$validationNodesResults')
             ->give([]);
@@ -26,15 +28,23 @@ class TestCase extends Orchestra
         );
     }
 
+    protected function getScrambleRoutes()
+    {
+        $routes = \Illuminate\Support\Facades\Route::getRoutes()->getRoutes();
+
+        return array_values(array_filter(
+            $routes,
+            fn ($r) => ! $r->named('storage.local'),
+        ));
+    }
+
     protected function tearDown(): void
     {
         Context::reset();
 
-        Scramble::$defaultRoutesIgnored = false;
-        Scramble::$routeResolver = null;
-        Scramble::$openApiExtender = null;
         Scramble::$tagResolver = null;
         Scramble::$enforceSchemaRules = [];
+        Scramble::$defaultRoutesIgnored = false;
 
         parent::tearDown();
     }

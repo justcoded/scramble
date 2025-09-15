@@ -59,7 +59,7 @@ class RequestEssentialsExtension extends OperationExtension
 
         $tagResolver = Scramble::$tagResolver ?? fn () => $this->getDefaultTags($operation, $routeInfo);
 
-        $uriWithoutOptionalParams = Str::replace('?}', '}', $routeInfo->route->uri);
+        $uriWithoutOptionalParams = Str::replace('?}', '}', $routeInfo->route->uri());
 
         $operation
             ->setMethod(strtolower($routeInfo->route->methods()[0]))

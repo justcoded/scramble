@@ -24,7 +24,7 @@ class ReflectionRoute
 
     public static function createFromRoute(Route $route): static
     {
-        static::$cache ??= new WeakMap;
+        static::$cache ??= new WeakMap();
 
         return static::$cache[$route] ??= new static($route);
     }
@@ -52,37 +52,43 @@ class ReflectionRoute
 
         $paramBoundTypes = $this->getBoundParametersTypes();
 
-        $checkingRouteSignatureParameters = $this->route->signatureParameters();
-        $paramsToSignatureParametersNameMap = collect($paramNames)
-            ->mapWithKeys(function ($name) use ($paramBoundTypes, &$checkingRouteSignatureParameters) {
-                $boundParamType = $paramBoundTypes[$name];
-                $mappedParameterReflection = collect($checkingRouteSignatureParameters)
-                    ->first(function (ReflectionParameter $rp) use ($boundParamType) {
-                        $type = $rp->getType();
+        $available = array_values($this->route->signatureParameters());
 
-                        if (! $type instanceof ReflectionNamedType || $type->isBuiltin()) {
-                            return true;
-                        }
+        $map = [];
 
-                        $className = Reflector::getParameterClassName($rp);
+        foreach ($paramNames as $name) {
+            $boundType = $paramBoundTypes[$name] ?? null;
+            $target = null;
 
-                        return is_a($boundParamType, $className, true);
-                    });
-
-                if ($mappedParameterReflection) {
-                    $checkingRouteSignatureParameters = array_filter($checkingRouteSignatureParameters, fn ($v) => $v !== $mappedParameterReflection);
+            $candidateNames = [$name, Str::camel($name)];
+            foreach ($available as $i => $rp) {
+                if (in_array($rp->name, $candidateNames, true)) {
+                    $target = $rp;
+                    unset($available[$i]);
+                    $available = array_values($available);
+                    break;
                 }
+            }
 
-                return [
-                    $name => $mappedParameterReflection,
-                ];
-            });
+            if (! $target && $boundType) {
+                foreach ($available as $i => $rp) {
+                    $t = $rp->getType();
+                    if ($t instanceof ReflectionNamedType && ! $t->isBuiltin()) {
+                        $className = Reflector::getParameterClassName($rp);
+                        if (is_string($boundType) && is_a($boundType, $className, true)) {
+                            $target = $rp;
+                            unset($available[$i]);
+                            $available = array_values($available);
+                            break;
+                        }
+                    }
+                }
+            }
 
-        $paramsWithRealNames = $paramsToSignatureParametersNameMap
-            ->mapWithKeys(fn (?ReflectionParameter $reflectionParameter, $name) => [$name => $reflectionParameter?->name ?: $name])
-            ->values();
+            $map[$name] = $target ? $target->name : $name;
+        }
 
-        return collect($paramNames)->mapWithKeys(fn ($name, $i) => [$name => $paramsWithRealNames[$i]])->all();
+        return $map;
     }
 
     /**
@@ -108,7 +114,7 @@ class ReflectionRoute
 
                 /** @var ReflectionParameter $implicitlyBoundParam */
                 $implicitlyBoundParam = $implicitlyBoundReflectionParams->first(
-                    fn (ReflectionParameter $p) => $p->name === $name || Str::snake($p->name) === $name,
+                    fn(ReflectionParameter $p) => $p->name === $name || Str::snake($p->name) === $name,
                 );
 
                 if ($implicitlyBoundParam) {
